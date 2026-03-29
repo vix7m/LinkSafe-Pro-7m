@@ -499,14 +499,13 @@
         localStorage.setItem(OPEN_KEY, JSON.stringify([...openFolders]));
     }
 
-    // تصدير البيانات مع طلب اسم الملف
+    // ============= الحل الجديد للتصدير المتوافق مع التطبيقات =============
     function showExportModal() {
         const modal = document.getElementById('fileNameModal');
         const fileNameInput = document.getElementById('fileNameInput');
         fileNameInput.value = 'LinkSafePro_Backup_' + new Date().toISOString().slice(0,19).replace(/:/g, '-');
         modal.style.display = 'flex';
         
-        // تأكيد التصدير
         const confirmBtn = document.getElementById('confirmExportBtn');
         const cancelBtn = document.getElementById('cancelExportBtn');
         
@@ -520,11 +519,10 @@
             if (fileName === '') {
                 fileName = 'LinkSafePro_Backup_' + new Date().toISOString().slice(0,19).replace(/:/g, '-');
             }
-            // إضافة .json إذا لم تكن موجودة
             if (!fileName.endsWith('.json')) {
                 fileName = fileName + '.json';
             }
-            exportData(fileName);
+            exportDataForApp(fileName);
             modal.style.display = 'none';
         });
         
@@ -532,7 +530,6 @@
             modal.style.display = 'none';
         });
         
-        // إغلاق المودال عند الضغط خارج المحتوى
         modal.addEventListener('click', function(e) {
             if (e.target === modal) {
                 modal.style.display = 'none';
@@ -540,7 +537,8 @@
         });
     }
 
-    function exportData(fileName) {
+    // دالة تصدير متوافقة مع التطبيقات (WebView)
+    function exportDataForApp(fileName) {
         try {
             const exportData = {
                 version: "1.0",
@@ -552,17 +550,110 @@
             
             const dataStr = JSON.stringify(exportData, null, 2);
             const blob = new Blob([dataStr], {type: "application/json"});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            showToast('✓ تم تصدير النسخة الاحتياطية بنجاح كملف: ' + fileName, '#00c853');
+            
+            // محاولة الطريقة العادية أولاً
+            try {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+                showToast('✓ تم تصدير النسخة الاحتياطية بنجاح', '#00c853');
+            } catch(e) {
+                // إذا فشلت الطريقة العادية (كما في WebView)، نعرض البيانات في نافذة جديدة
+                showManualDownloadDialog(dataStr, fileName);
+            }
         } catch(e) {
             showToast('⚠️ خطأ في تصدير البيانات', '#ff6b6b');
+        }
+    }
+
+    // نافذة بديلة للتنزيل اليدوي (للتطبيقات التي لا تسمح بالتنزيل التلقائي)
+    function showManualDownloadDialog(dataStr, fileName) {
+        const modal = document.getElementById('fileNameModal');
+        const modalContent = document.querySelector('#fileNameModal .modal-content');
+        
+        // حفظ المحتوى الأصلي
+        const originalContent = modalContent.innerHTML;
+        
+        // عرض محتوى جديد مع النص للنسخ
+        modalContent.innerHTML = `
+            <h3 style="color:#ffdd99;">📋 تنزيل يدوي</h3>
+            <p style="color:#bcbcce; margin-bottom:0.5rem;">لا يمكن التنزيل التلقائي في هذا التطبيق. يرجى اتباع الخطوات التالية:</p>
+            <ol style="text-align:left; color:#bcbcce; margin:1rem 0; padding-right:1.5rem;">
+                <li style="margin-bottom:0.5rem;">📝 حدد النص أدناه بالكامل</li>
+                <li style="margin-bottom:0.5rem;">📋 انسخه (اضغط مع الاستمرار ثم اختر نسخ)</li>
+                <li style="margin-bottom:0.5rem;">📁 افتح تطبيق "المفكرة" أو أي محرر نصوص</li>
+                <li style="margin-bottom:0.5rem;">💾 الصق النص واحفظ الملف باسم <strong>${fileName}</strong></li>
+            </ol>
+            <textarea id="manualBackupText" readonly style="width:100%; height:150px; background:#0a0c12; color:#ffdd99; border:1px solid #ffd966; border-radius:0.5rem; padding:0.5rem; font-size:0.7rem; direction:ltr; text-align:left;">${dataStr}</textarea>
+            <div class="modal-buttons" style="margin-top:1rem;">
+                <button class="modal-btn modal-btn-confirm" id="copyManualBtn">📋 نسخ النص</button>
+                <button class="modal-btn modal-btn-cancel" id="closeManualBtn">❌ إغلاق</button>
+            </div>
+        `;
+        
+        // زر النسخ
+        document.getElementById('copyManualBtn').addEventListener('click', function() {
+            const textArea = document.getElementById('manualBackupText');
+            textArea.select();
+            textArea.setSelectionRange(0, 999999);
+            document.execCommand('copy');
+            showToast('✓ تم نسخ البيانات! يمكنك لصقها في ملف', '#00c853');
+        });
+        
+        // زر الإغلاق
+        document.getElementById('closeManualBtn').addEventListener('click', function() {
+            modalContent.innerHTML = originalContent;
+            modal.style.display = 'none';
+            // إعادة ربط الأزرار الأصلية
+            reattachModalButtons();
+        });
+        
+        // إغلاق عند الضغط خارج المحتوى
+        modal.onclick = function(e) {
+            if (e.target === modal) {
+                modalContent.innerHTML = originalContent;
+                modal.style.display = 'none';
+                reattachModalButtons();
+                modal.onclick = null;
+            }
+        };
+    }
+
+    function reattachModalButtons() {
+        const modal = document.getElementById('fileNameModal');
+        const confirmBtn = document.getElementById('confirmExportBtn');
+        const cancelBtn = document.getElementById('cancelExportBtn');
+        
+        if (confirmBtn) {
+            const newConfirm = confirmBtn.cloneNode(true);
+            confirmBtn.parentNode.replaceChild(newConfirm, confirmBtn);
+            newConfirm.addEventListener('click', function() {
+                let fileName = document.getElementById('fileNameInput').value.trim();
+                if (fileName === '') {
+                    fileName = 'LinkSafePro_Backup_' + new Date().toISOString().slice(0,19).replace(/:/g, '-');
+                }
+                if (!fileName.endsWith('.json')) {
+                    fileName = fileName + '.json';
+                }
+                exportDataForApp(fileName);
+                modal.style.display = 'none';
+            });
+        }
+        
+        if (cancelBtn) {
+            const newCancel = cancelBtn.cloneNode(true);
+            cancelBtn.parentNode.replaceChild(newCancel, cancelBtn);
+            newCancel.addEventListener('click', function() {
+                modal.style.display = 'none';
+            });
         }
     }
 
