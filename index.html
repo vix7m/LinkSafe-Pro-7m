@@ -126,6 +126,38 @@
             box-shadow: 0 0 12px rgba(255, 210, 70, 0.6);
         }
 
+        /* أزرار النسخ الاحتياطي */
+        .backup-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-backup {
+            background: linear-gradient(95deg, #2c3e66, #1a2a4a);
+            border: 1px solid rgba(255, 215, 0, 0.5);
+            padding: 0.6rem 1.2rem;
+            border-radius: 2rem;
+            font-weight: bold;
+            font-size: 0.9rem;
+            color: #ffdd99;
+            cursor: pointer;
+            flex: 1;
+            transition: 0.2s;
+            text-align: center;
+        }
+
+        .btn-backup:hover {
+            transform: scale(0.97);
+            background: linear-gradient(95deg, #3a4e7e, #2a3a5a);
+            border-color: #ffd966;
+        }
+
+        .btn-restore {
+            background: linear-gradient(95deg, #4a2c66, #3a1a5a);
+        }
+
         .folders-container {
             display: flex;
             flex-direction: column;
@@ -292,6 +324,7 @@
         @media (max-width: 680px) {
             .glass-container { padding: 1rem; }
             .neon-header h1 { font-size: 1.8rem; }
+            .backup-buttons { flex-direction: column; }
         }
     </style>
 </head>
@@ -320,13 +353,22 @@
         <button class="btn-gold" id="saveLinkBtn">✨ حفظ الرابط ✨</button>
     </div>
 
+    <!-- أزرار النسخ الاحتياطي الجديدة -->
+    <div class="backup-buttons">
+        <button class="btn-backup" id="exportBtn">💾 تصدير البيانات (نسخة احتياطية)</button>
+        <button class="btn-backup btn-restore" id="importBtn">📂 استيراد البيانات (استعادة)</button>
+    </div>
+
     <div id="foldersContainer"></div>
     
     <footer>
-        🔐 البيانات محفوظة محلياً وبصمة جهاز | لا تختفي إلا بالحذف اليدوي
+        🔐 البيانات محفوظة محلياً | يمكنك تصدير نسخة احتياطية قبل حذف التطبيق
         <div class="device-hint" id="deviceHint"></div>
     </footer>
 </div>
+
+<!-- ملف استيراد مخفي -->
+<input type="file" id="fileInput" style="display: none;" accept=".json">
 
 <script>
     // ====================== نظام التخزين ======================
@@ -382,9 +424,63 @@
         localStorage.setItem(OPEN_KEY, JSON.stringify([...openFolders]));
     }
 
+    // تصدير البيانات (نسخة احتياطية)
+    function exportData() {
+        try {
+            const exportData = {
+                version: "1.0",
+                exportDate: new Date().toISOString(),
+                deviceId: DEVICE_ID,
+                folders: appData,
+                openFolders: [...openFolders]
+            };
+            
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([dataStr], {type: "application/json"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `LinkSafePro_Backup_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('✓ تم تصدير النسخة الاحتياطية بنجاح', '#00c853');
+        } catch(e) {
+            showToast('⚠️ خطأ في تصدير البيانات', '#ff6b6b');
+        }
+    }
+
+    // استيراد البيانات (استعادة)
+    function importData(file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const imported = JSON.parse(e.target.result);
+                
+                // التحقق من صحة الملف
+                if (imported.folders && typeof imported.folders === 'object') {
+                    appData = imported.folders;
+                    if (imported.openFolders && Array.isArray(imported.openFolders)) {
+                        openFolders = new Set(imported.openFolders);
+                    } else {
+                        openFolders = new Set();
+                    }
+                    saveAppData();
+                    renderAll();
+                    showToast('✓ تم استعادة البيانات بنجاح!', '#00c853');
+                } else {
+                    showToast('⚠️ ملف غير صالح', '#ff6b6b');
+                }
+            } catch(e) {
+                showToast('⚠️ خطأ في قراءة الملف', '#ff6b6b');
+            }
+        };
+        reader.readAsText(file);
+    }
+
     // إضافة رابط جديد
     function saveNewLink() {
-        // جلب القيم
         let urlField = document.getElementById('linkUrl');
         let hashtagField = document.getElementById('linkHashtag');
         let descField = document.getElementById('linkDesc');
@@ -393,19 +489,16 @@
         let hashtag = hashtagField ? hashtagField.value : '';
         let desc = descField ? descField.value : '';
         
-        // التحقق
         if (!url || url.trim() === '') {
             showToast('⚠️ الرابط مطلوب!', '#ff6b6b');
             return false;
         }
         
-        // تنظيف الرابط
         let finalUrl = url.trim();
         if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
             finalUrl = 'https://' + finalUrl;
         }
         
-        // اسم المجلد
         let folderName = hashtag.trim();
         if (folderName === '') {
             folderName = 'بدون هاشتاك';
@@ -414,7 +507,6 @@
             folderName = '#' + folderName;
         }
         
-        // إنشاء الرابط
         let newLink = {
             id: Date.now() + '_' + Math.random().toString(36).substr(2, 8),
             url: finalUrl,
@@ -423,17 +515,14 @@
             date: new Date().toISOString()
         };
         
-        // إضافة للمجلد
         if (!appData[folderName]) {
             appData[folderName] = [];
         }
         appData[folderName].unshift(newLink);
         
-        // حفظ
         saveAppData();
         renderAll();
         
-        // تفريغ الحقول
         urlField.value = '';
         hashtagField.value = '';
         descField.value = '';
@@ -458,7 +547,7 @@
         }
     }
 
-    // حذف مجلد كامل
+    // حذف مجلد
     function deleteFolderByName(folderName) {
         if (confirm(`⚠️ هل تريد حذف المجلد "${folderName}" وجميع محتوياته؟\nهذا الإجراء لا يمكن التراجع عنه!`)) {
             delete appData[folderName];
@@ -579,7 +668,7 @@
     function updateDeviceHint() {
         let hint = document.getElementById('deviceHint');
         if (hint) {
-            hint.innerHTML = `🔒 معرف التخزين: ${DEVICE_ID.slice(0, 14)}... | البيانات لا تختفي إلا بالحذف`;
+            hint.innerHTML = `🔒 معرف التخزين: ${DEVICE_ID.slice(0, 14)}... | قم بتصدير نسخة احتياطية قبل حذف التطبيق`;
         }
     }
     
@@ -588,19 +677,46 @@
     window.deleteLink = deleteLinkById;
     window.deleteFolder = deleteFolderByName;
     window.toggleFolder = toggleFolderItem;
+    window.exportData = exportData;
     
-    // ربط زر الحفظ
+    // ربط الأزرار
     document.addEventListener('DOMContentLoaded', function() {
+        // زر الحفظ
         let saveBtn = document.getElementById('saveLinkBtn');
         if (saveBtn) {
-            // إزالة أي مستمعين قديمين
             let newBtn = saveBtn.cloneNode(true);
             saveBtn.parentNode.replaceChild(newBtn, saveBtn);
-            
             newBtn.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 saveNewLink();
+            });
+        }
+        
+        // زر التصدير
+        let exportBtn = document.getElementById('exportBtn');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                exportData();
+            });
+        }
+        
+        // زر الاستيراد
+        let importBtn = document.getElementById('importBtn');
+        let fileInput = document.getElementById('fileInput');
+        
+        if (importBtn && fileInput) {
+            importBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                fileInput.click();
+            });
+            
+            fileInput.addEventListener('change', function(e) {
+                if (e.target.files && e.target.files[0]) {
+                    importData(e.target.files[0]);
+                    fileInput.value = '';
+                }
             });
         }
         
