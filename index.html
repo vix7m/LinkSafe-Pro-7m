@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>LinkSafe Pro 7m | المجلدات الذكية</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Poppins', 'Cairo', system-ui, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: radial-gradient(circle at 20% 30%, #0a0c12, #030507);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 1.5rem;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 70% 80%, rgba(255, 215, 0, 0.08), transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .glass-container {
+            max-width: 1600px;
+            width: 100%;
+            background: rgba(10, 14, 23, 0.65);
+            backdrop-filter: blur(12px);
+            border-radius: 3rem;
+            border: 1px solid rgba(255, 215, 0, 0.25);
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.5);
+            padding: 2rem;
+            z-index: 2;
+        }
+
+        .neon-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .neon-header h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #FFD966, #FFB347, #FFD700);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 8px rgba(255, 200, 0, 0.6);
+        }
+
+        .neon-header p {
+            color: #ffdf8c;
+            margin-top: 0.5rem;
+        }
+
+        .form-card {
+            background: rgba(0, 0, 0, 0.55);
+            border-radius: 2rem;
+            padding: 1.8rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(255, 200, 0, 0.35);
+        }
+
+        .input-group {
+            margin-bottom: 1.2rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #FFE5B4;
+            font-weight: 600;
+        }
+
+        .input-group input, .input-group textarea {
+            width: 100%;
+            background: #0f111a;
+            border: 1.5px solid #2a2e3f;
+            border-radius: 1.2rem;
+            padding: 0.9rem 1.2rem;
+            color: #f5f0e0;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        .input-group input:focus, .input-group textarea:focus {
+            border-color: #FFD966;
+            box-shadow: 0 0 12px rgba(255, 220, 100, 0.5);
+        }
+
+        .input-group small {
+            display: block;
+            margin-top: 0.3rem;
+            color: #ffdd99;
+            font-size: 0.7rem;
+        }
+
+        .btn-gold {
+            background: linear-gradient(95deg, #e6b422, #ffd966);
+            border: none;
+            padding: 0.9rem 1.8rem;
+            border-radius: 2rem;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #0a0c12;
+            cursor: pointer;
+            width: 100%;
+            transition: 0.2s;
+        }
+
+        .btn-gold:hover {
+            transform: scale(0.98);
+            box-shadow: 0 0 12px rgba(255, 210, 70, 0.6);
+        }
+
+        .folders-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .folder {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 1.5rem;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .folder-header {
+            background: linear-gradient(135deg, rgba(255, 200, 0, 0.15), rgba(255, 180, 0, 0.05));
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .folder-title {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #ffdd99;
+        }
+
+        .folder-icon {
+            font-size: 1.3rem;
+        }
+
+        .folder-count {
+            background: rgba(255, 215, 0, 0.3);
+            padding: 0.2rem 0.6rem;
+            border-radius: 2rem;
+            font-size: 0.75rem;
+            color: #ffd966;
+        }
+
+        .folder-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .delete-folder-btn {
+            background: rgba(180, 50, 50, 0.8);
+            border: none;
+            padding: 0.3rem 0.8rem;
+            border-radius: 1.5rem;
+            color: white;
+            cursor: pointer;
+            font-size: 0.7rem;
+        }
+
+        .delete-folder-btn:hover {
+            background: #c43a3a;
+        }
+
+        .folder-toggle {
+            font-size: 1.2rem;
+            color: #ffd966;
+        }
+
+        .folder-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .folder-content.open {
+            max-height: 2000px;
+            transition: max-height 0.5s ease-in;
+        }
+
+        .links-grid {
+            padding: 1rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        .link-card {
+            background: rgba(12, 15, 25, 0.9);
+            border-radius: 1rem;
+            border: 1px solid rgba(255, 200, 100, 0.3);
+            padding: 0.8rem;
+        }
+
+        .link-url a {
+            color: #ffdfa5;
+            text-decoration: none;
+            word-break: break-all;
+            font-size: 0.85rem;
+        }
+
+        .description-text {
+            color: #bcbcce;
+            font-size: 0.75rem;
+            margin: 0.5rem 0;
+            padding-left: 0.5rem;
+            border-left: 2px solid #ffb347;
+        }
+
+        .card-footer {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 0.5rem;
+        }
+
+        .delete-btn {
+            background: rgba(180, 50, 50, 0.8);
+            border: none;
+            padding: 0.25rem 0.8rem;
+            border-radius: 1.5rem;
+            color: white;
+            cursor: pointer;
+            font-size: 0.7rem;
+        }
+
+        .empty-folder, .no-folders {
+            text-align: center;
+            padding: 2rem;
+            color: #8f8fa0;
+        }
+
+        footer {
+            margin-top: 2rem;
+            font-size: 0.7rem;
+            text-align: center;
+            color: #5f5f77;
+        }
+
+        .device-hint {
+            font-size: 0.65rem;
+            margin-top: 8px;
+            color: #b9aa70;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #00c853;
+            color: #0a0c12;
+            padding: 12px 24px;
+            border-radius: 2rem;
+            font-weight: bold;
+            z-index: 1000;
+            animation: fadeInOut 2s ease;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateX(100%); }
+            15% { opacity: 1; transform: translateX(0); }
+            85% { opacity: 1; transform: translateX(0); }
+            100% { opacity: 0; transform: translateX(100%); }
+        }
+
+        @media (max-width: 680px) {
+            .glass-container { padding: 1rem; }
+            .neon-header h1 { font-size: 1.8rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="glass-container">
+    <div class="neon-header">
+        <h1>📁 LinkSafe Pro 7m 📁</h1>
+        <p>مجلدات ذكية حسب الهاشتاك | حفظ دائم وآمن</p>
+    </div>
+
+    <div class="form-card">
+        <div class="input-group">
+            <label>🔗 الرابط</label>
+            <input type="text" id="linkUrl" placeholder="https://example.com">
+        </div>
+        <div class="input-group">
+            <label>🏷️ الهاشتاك (اسم المجلد)</label>
+            <input type="text" id="linkHashtag" placeholder="#تقنية أو ذكاء_اصطناعي">
+            <small>💡 سيتم إنشاء مجلد بنفس الاسم تلقائياً</small>
+        </div>
+        <div class="input-group">
+            <label>📝 الوصف</label>
+            <textarea id="linkDesc" rows="2" placeholder="وصف الرابط..."></textarea>
+        </div>
+        <button class="btn-gold" id="saveLinkBtn">✨ حفظ الرابط ✨</button>
+    </div>
+
+    <div id="foldersContainer"></div>
+    
+    <footer>
+        🔐 البيانات محفوظة محلياً وبصمة جهاز | لا تختفي إلا بالحذف اليدوي
+        <div class="device-hint" id="deviceHint"></div>
+    </footer>
+</div>
+
+<script>
+    // ====================== نظام التخزين ======================
+    let appData = {};
+    let openFolders = new Set();
+
+    // بصمة الجهاز
+    function getDeviceId() {
+        let info = [
+            screen.width, screen.height, screen.colorDepth,
+            navigator.language, navigator.platform,
+            Intl.DateTimeFormat().resolvedOptions().timeZone
+        ].join('|');
+        let hash = 0;
+        for (let i = 0; i < info.length; i++) {
+            hash = ((hash << 5) - hash) + info.charCodeAt(i);
+            hash |= 0;
+        }
+        return 'ls_' + Math.abs(hash).toString(16);
+    }
+
+    const DEVICE_ID = getDeviceId();
+    const STORAGE_KEY = 'LinkSafePro_' + DEVICE_ID;
+    const OPEN_KEY = STORAGE_KEY + '_open';
+
+    // تحميل البيانات
+    function loadAppData() {
+        try {
+            let saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                appData = JSON.parse(saved);
+                if (typeof appData !== 'object') appData = {};
+            } else {
+                appData = {};
+            }
+            
+            let savedOpen = localStorage.getItem(OPEN_KEY);
+            if (savedOpen) {
+                let arr = JSON.parse(savedOpen);
+                openFolders = new Set(arr);
+            }
+        } catch(e) {
+            appData = {};
+            openFolders = new Set();
+        }
+        renderAll();
+        updateDeviceHint();
+    }
+
+    // حفظ البيانات
+    function saveAppData() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+        localStorage.setItem(OPEN_KEY, JSON.stringify([...openFolders]));
+    }
+
+    // إضافة رابط جديد
+    function saveNewLink() {
+        // جلب القيم
+        let urlField = document.getElementById('linkUrl');
+        let hashtagField = document.getElementById('linkHashtag');
+        let descField = document.getElementById('linkDesc');
+        
+        let url = urlField ? urlField.value : '';
+        let hashtag = hashtagField ? hashtagField.value : '';
+        let desc = descField ? descField.value : '';
+        
+        // التحقق
+        if (!url || url.trim() === '') {
+            showToast('⚠️ الرابط مطلوب!', '#ff6b6b');
+            return false;
+        }
+        
+        // تنظيف الرابط
+        let finalUrl = url.trim();
+        if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+            finalUrl = 'https://' + finalUrl;
+        }
+        
+        // اسم المجلد
+        let folderName = hashtag.trim();
+        if (folderName === '') {
+            folderName = 'بدون هاشتاك';
+        }
+        if (!folderName.startsWith('#') && folderName !== 'بدون هاشتاك') {
+            folderName = '#' + folderName;
+        }
+        
+        // إنشاء الرابط
+        let newLink = {
+            id: Date.now() + '_' + Math.random().toString(36).substr(2, 8),
+            url: finalUrl,
+            hashtag: folderName,
+            description: desc.trim(),
+            date: new Date().toISOString()
+        };
+        
+        // إضافة للمجلد
+        if (!appData[folderName]) {
+            appData[folderName] = [];
+        }
+        appData[folderName].unshift(newLink);
+        
+        // حفظ
+        saveAppData();
+        renderAll();
+        
+        // تفريغ الحقول
+        urlField.value = '';
+        hashtagField.value = '';
+        descField.value = '';
+        
+        showToast('✓ تم حفظ الرابط في مجلد ' + folderName, '#00c853');
+        return true;
+    }
+
+    // حذف رابط
+    function deleteLinkById(folderName, linkId) {
+        if (confirm('⚠️ هل تريد حذف هذا الرابط نهائياً؟')) {
+            if (appData[folderName]) {
+                appData[folderName] = appData[folderName].filter(l => l.id !== linkId);
+                if (appData[folderName].length === 0) {
+                    delete appData[folderName];
+                    openFolders.delete(folderName);
+                }
+                saveAppData();
+                renderAll();
+                showToast('✓ تم حذف الرابط', '#ffb347');
+            }
+        }
+    }
+
+    // حذف مجلد كامل
+    function deleteFolderByName(folderName) {
+        if (confirm(`⚠️ هل تريد حذف المجلد "${folderName}" وجميع محتوياته؟\nهذا الإجراء لا يمكن التراجع عنه!`)) {
+            delete appData[folderName];
+            openFolders.delete(folderName);
+            saveAppData();
+            renderAll();
+            showToast('✓ تم حذف المجلد', '#ffb347');
+        }
+    }
+
+    // فتح/غلق مجلد
+    function toggleFolderItem(folderName) {
+        if (openFolders.has(folderName)) {
+            openFolders.delete(folderName);
+        } else {
+            openFolders.add(folderName);
+        }
+        saveAppData();
+        renderAll();
+    }
+
+    // عرض جميع المجلدات
+    function renderAll() {
+        let container = document.getElementById('foldersContainer');
+        if (!container) return;
+        
+        let folders = Object.keys(appData).sort((a, b) => {
+            return appData[b].length - appData[a].length;
+        });
+        
+        if (folders.length === 0) {
+            container.innerHTML = '<div class="no-folders">📁 لا توجد مجلدات بعد<br>✨ أضف أول رابط لإنشاء مجلد تلقائياً ✨</div>';
+            return;
+        }
+        
+        let html = '';
+        for (let folder of folders) {
+            let links = appData[folder];
+            let isOpen = openFolders.has(folder);
+            let count = links.length;
+            
+            html += `
+                <div class="folder">
+                    <div class="folder-header" onclick="window.toggleFolder('${escapeString(folder)}')">
+                        <div class="folder-title">
+                            <span class="folder-icon">📁</span>
+                            <span>${escapeHtml(folder)}</span>
+                            <span class="folder-count">${count} رابط</span>
+                        </div>
+                        <div class="folder-actions">
+                            <button class="delete-folder-btn" onclick="event.stopPropagation(); window.deleteFolder('${escapeString(folder)}')">🗑️ حذف المجلد</button>
+                            <span class="folder-toggle">${isOpen ? '▼' : '▶'}</span>
+                        </div>
+                    </div>
+                    <div class="folder-content ${isOpen ? 'open' : ''}">
+                        <div class="links-grid">
+                            ${renderLinks(folder, links)}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        container.innerHTML = html;
+    }
+    
+    function renderLinks(folderName, links) {
+        if (!links || links.length === 0) {
+            return '<div class="empty-folder">✨ لا توجد روابط في هذا المجلد ✨</div>';
+        }
+        
+        let result = '';
+        for (let link of links) {
+            let descHtml = link.description ? `<div class="description-text">📄 ${escapeHtml(link.description)}</div>` : '';
+            result += `
+                <div class="link-card">
+                    <div class="link-url">
+                        🔗 <a href="${escapeHtml(link.url)}" target="_blank">${truncateUrl(escapeHtml(link.url))}</a>
+                    </div>
+                    ${descHtml}
+                    <div class="card-footer">
+                        <button class="delete-btn" onclick="window.deleteLink('${escapeString(folderName)}', '${link.id}')">🗑️ حذف</button>
+                    </div>
+                </div>
+            `;
+        }
+        return result;
+    }
+    
+    // دوال مساعدة
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+    
+    function escapeString(str) {
+        if (!str) return '';
+        return str.replace(/'/g, "\\'").replace(/"/g, '\\"');
+    }
+    
+    function truncateUrl(url, max = 45) {
+        return url.length > max ? url.substr(0, max) + '...' : url;
+    }
+    
+    function showToast(msg, color = '#00c853') {
+        let toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.style.background = color;
+        toast.textContent = msg;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
+    }
+    
+    function updateDeviceHint() {
+        let hint = document.getElementById('deviceHint');
+        if (hint) {
+            hint.innerHTML = `🔒 معرف التخزين: ${DEVICE_ID.slice(0, 14)}... | البيانات لا تختفي إلا بالحذف`;
+        }
+    }
+    
+    // ربط الدوال للـ window
+    window.saveNewLink = saveNewLink;
+    window.deleteLink = deleteLinkById;
+    window.deleteFolder = deleteFolderByName;
+    window.toggleFolder = toggleFolderItem;
+    
+    // ربط زر الحفظ
+    document.addEventListener('DOMContentLoaded', function() {
+        let saveBtn = document.getElementById('saveLinkBtn');
+        if (saveBtn) {
+            // إزالة أي مستمعين قديمين
+            let newBtn = saveBtn.cloneNode(true);
+            saveBtn.parentNode.replaceChild(newBtn, saveBtn);
+            
+            newBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                saveNewLink();
+            });
+        }
+        
+        // تحميل البيانات
+        loadAppData();
+    });
+</script>
+</body>
+</html>
