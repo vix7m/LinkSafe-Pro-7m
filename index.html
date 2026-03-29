@@ -126,7 +126,6 @@
             box-shadow: 0 0 12px rgba(255, 210, 70, 0.6);
         }
 
-        /* أزرار النسخ الاحتياطي */
         .backup-buttons {
             display: flex;
             gap: 1rem;
@@ -314,6 +313,70 @@
             animation: fadeInOut 2s ease;
         }
 
+        /* مودال طلب اسم الملف */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #0f111a, #1a1d2e);
+            padding: 2rem;
+            border-radius: 2rem;
+            border: 1px solid #ffd966;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .modal-content h3 {
+            color: #ffdd99;
+            margin-bottom: 1rem;
+        }
+
+        .modal-content input {
+            width: 100%;
+            padding: 0.8rem;
+            border-radius: 1rem;
+            border: 1px solid #ffd966;
+            background: #0a0c12;
+            color: white;
+            margin-bottom: 1rem;
+            font-size: 1rem;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 0.6rem;
+            border-radius: 1.5rem;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .modal-btn-confirm {
+            background: linear-gradient(95deg, #e6b422, #ffd966);
+            color: #0a0c12;
+        }
+
+        .modal-btn-cancel {
+            background: #4a2c66;
+            color: white;
+        }
+
         @keyframes fadeInOut {
             0% { opacity: 0; transform: translateX(100%); }
             15% { opacity: 1; transform: translateX(0); }
@@ -353,7 +416,6 @@
         <button class="btn-gold" id="saveLinkBtn">✨ حفظ الرابط ✨</button>
     </div>
 
-    <!-- أزرار النسخ الاحتياطي الجديدة -->
     <div class="backup-buttons">
         <button class="btn-backup" id="exportBtn">💾 تصدير البيانات (نسخة احتياطية)</button>
         <button class="btn-backup btn-restore" id="importBtn">📂 استيراد البيانات (استعادة)</button>
@@ -365,6 +427,19 @@
         🔐 البيانات محفوظة محلياً | يمكنك تصدير نسخة احتياطية قبل حذف التطبيق
         <div class="device-hint" id="deviceHint"></div>
     </footer>
+</div>
+
+<!-- مودال طلب اسم الملف -->
+<div id="fileNameModal" class="modal">
+    <div class="modal-content">
+        <h3>💾 تصدير النسخة الاحتياطية</h3>
+        <p style="color:#bcbcce; margin-bottom:1rem;">أدخل اسم الملف الذي تريد حفظ بياناتك فيه</p>
+        <input type="text" id="fileNameInput" placeholder="مثال: روابطي_المهمة" autocomplete="off">
+        <div class="modal-buttons">
+            <button class="modal-btn modal-btn-confirm" id="confirmExportBtn">✅ تنزيل</button>
+            <button class="modal-btn modal-btn-cancel" id="cancelExportBtn">❌ إلغاء</button>
+        </div>
+    </div>
 </div>
 
 <!-- ملف استيراد مخفي -->
@@ -424,8 +499,48 @@
         localStorage.setItem(OPEN_KEY, JSON.stringify([...openFolders]));
     }
 
-    // تصدير البيانات (نسخة احتياطية)
-    function exportData() {
+    // تصدير البيانات مع طلب اسم الملف
+    function showExportModal() {
+        const modal = document.getElementById('fileNameModal');
+        const fileNameInput = document.getElementById('fileNameInput');
+        fileNameInput.value = 'LinkSafePro_Backup_' + new Date().toISOString().slice(0,19).replace(/:/g, '-');
+        modal.style.display = 'flex';
+        
+        // تأكيد التصدير
+        const confirmBtn = document.getElementById('confirmExportBtn');
+        const cancelBtn = document.getElementById('cancelExportBtn');
+        
+        const newConfirm = confirmBtn.cloneNode(true);
+        const newCancel = cancelBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newConfirm, confirmBtn);
+        cancelBtn.parentNode.replaceChild(newCancel, cancelBtn);
+        
+        newConfirm.addEventListener('click', function() {
+            let fileName = fileNameInput.value.trim();
+            if (fileName === '') {
+                fileName = 'LinkSafePro_Backup_' + new Date().toISOString().slice(0,19).replace(/:/g, '-');
+            }
+            // إضافة .json إذا لم تكن موجودة
+            if (!fileName.endsWith('.json')) {
+                fileName = fileName + '.json';
+            }
+            exportData(fileName);
+            modal.style.display = 'none';
+        });
+        
+        newCancel.addEventListener('click', function() {
+            modal.style.display = 'none';
+        });
+        
+        // إغلاق المودال عند الضغط خارج المحتوى
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    }
+
+    function exportData(fileName) {
         try {
             const exportData = {
                 version: "1.0",
@@ -440,25 +555,24 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `LinkSafePro_Backup_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.json`;
+            a.download = fileName;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            showToast('✓ تم تصدير النسخة الاحتياطية بنجاح', '#00c853');
+            showToast('✓ تم تصدير النسخة الاحتياطية بنجاح كملف: ' + fileName, '#00c853');
         } catch(e) {
             showToast('⚠️ خطأ في تصدير البيانات', '#ff6b6b');
         }
     }
 
-    // استيراد البيانات (استعادة)
+    // استيراد البيانات
     function importData(file) {
         const reader = new FileReader();
         reader.onload = function(e) {
             try {
                 const imported = JSON.parse(e.target.result);
                 
-                // التحقق من صحة الملف
                 if (imported.folders && typeof imported.folders === 'object') {
                     appData = imported.folders;
                     if (imported.openFolders && Array.isArray(imported.openFolders)) {
@@ -677,7 +791,7 @@
     window.deleteLink = deleteLinkById;
     window.deleteFolder = deleteFolderByName;
     window.toggleFolder = toggleFolderItem;
-    window.exportData = exportData;
+    window.showExportModal = showExportModal;
     
     // ربط الأزرار
     document.addEventListener('DOMContentLoaded', function() {
@@ -698,7 +812,7 @@
         if (exportBtn) {
             exportBtn.addEventListener('click', function(e) {
                 e.preventDefault();
-                exportData();
+                showExportModal();
             });
         }
         
